@@ -1,32 +1,42 @@
+# External Libraries
+from google.adk.agents import Agent
+from google.adk.tools.agent_tool import AgentTool
+from google.adk.tools import google_search
 
-### This is example (my_google_search_agent) which can be just run using adk web or adk run. It cannot be run programmaticaly.
+# Internal Modules
+from simple_search_agent.tools import check_url_exists
+from simple_search_agent.structured_outputs import MultipleURLResults
+from simple_search_agent.config import (
+    model_to_use
+)
+from simple_search_agent.agent_instructions import (
+    SEARCH_AGENT_INSTRUCTION,
+    ROOT_AGENT_INSTRUCTION)
 
-from google.adk import Agent
-from google.adk.tools import google_search  # The Google Search tool
 
-import sys
-sys.path.append("..")
-# from callback_logging import log_query_to_model, log_model_response
+# ============================================================================
+# AGENT 1: Dedicated agent for the built-in google_search tool (Agent as a tool)
+# ============================================================================
 
+search_agent = Agent(
+    model=model_to_use,
+    name='justwatch_searcher',
+    description='Searches Google for JustWatch movie pages',
+    instruction=SEARCH_AGENT_INSTRUCTION,
+    tools=[google_search],  # Agent using one built-in tool
+)
+
+# ============================================================================
+# AGENT 2: Root agent that orchestrates the search and validation
+# ============================================================================
 
 root_agent = Agent(
-    # name: A unique name for the agent.
-    name="google_search_agent",
-    # description: A short description of the agent's purpose, so
-    # other agents in a multi-agent system know when to call it.
-    description="Answer questions using Google Search.",
-    # model: The LLM model that the agent will use:
-    model="gemini-2.0-flash-lite",
-    # instruction: Instructions (or the prompt) for the agent.
-    instruction="You are an expert researcher. You stick to the facts.",
-    # callbacks: Allow for you to run functions at certain points in
-    # the agent's execution cycle. In this example, you will log the
-    # request to the agent and its response.
-    # before_model_callback=log_query_to_model,
-    # after_model_callback=log_model_response,
-
-    # tools: functions to enhance the model's capabilities.
-    # Add the google_search tool below.
-    tools = [google_search]
-
+    model=model_to_use,
+    name='justwatch_link_finder',
+    description='Finds and validates JustWatch movie page URLs',
+    instruction=ROOT_AGENT_INSTRUCTION,
+    # Wrapping `the search_agent` as an AgentTool due to ADK's limitations
+    # The root agent uses the search_agent (as a tool) and a custom function - currently ADK doesn't support build-in tools + custom tools
+    tools=[AgentTool(agent=search_agent), check_url_exists],
+    output_schema = MultipleURLResults
 )
