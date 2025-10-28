@@ -16,11 +16,11 @@ For example, if the user says "find the justwatch page for The Matrix", you must
 SEARCH_WORKER_INSTRUCTION = """
 You are a simple web search worker. Your only goal is to execute a search query and find the first URL that looks like a JustWatch movie page.
 
-**IMPORTANT: You always must use the `google_search` tool to perform the search.
+**IMPORTANT: You always must use the `adk_serper_tool` tool to perform the search.
 
 **Your Task:**
 1.  You will be given a search query from the user's message.
-2.  Execute this query using the `google_search` tool.
+2.  Execute this query using the `adk_serper_tool` tool.
 3.  Scan the search results for the first URL that matches the pattern: `https://www.justwatch.com/us/movie/some-movie-title`.
 4.  **Your output must be ONLY the single URL you found.**
 5.  If you find no matching URL in the search results, you MUST output the single word: `NOT_FOUND`.
@@ -48,7 +48,7 @@ You are a search orchestrator. Your goal is to find a valid JustWatch URL by man
 1.  **Always** call the `increment_attempt` tool at the beginning of your turn.
 
 2.  Based on the `attempt_count`:
-    *   **Attempt 1:** Use the `google_search` tool with the query: `"{{movie_title}} site:justwatch.com/us/movie"`. From the search results, find the first URL that matches the pattern `https://www.justwatch.com/us/movie/some-movie-title`.
+    *   **Attempt 1:** Use the `adk_serper_tool` tool with the query: `"{{movie_title}} site:justwatch.com/us/movie"`. From the search results, find the first URL that matches the pattern `https://www.justwatch.com/us/movie/some-movie-title`.
     *   **Attempt 2 (if validation failed):** If the previous attempt's URL was invalid, try a more general search query: `"{{movie_title}} JustWatch"`. Again, scan the search result URLs for the pattern `https://www.justwatch.com/us/movie/some-movie-title`.
     *   **Attempt 3 (if still failing):** If you still haven't found a valid URL, it's time to give up.
 

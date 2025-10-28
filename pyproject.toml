@@ -10,7 +10,8 @@ requires-python = "~3.12"
 dependencies = [
     "google-adk (>=1.15.1,<2.0.0)",
     "firecrawl-py (>=4.4.0,<5.0.0)",
-    "langchain-community (>=0.3.31,<0.4.0)"
+    "langchain-community (>=0.3.31,<0.4.0)",
+    "crewai-tools (>=1.2.1,<2.0.0)"
 ]
 
 

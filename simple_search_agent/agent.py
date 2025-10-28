@@ -7,6 +7,7 @@ from google.adk.tools import google_search
 from google.adk.tools import ToolContext
 from google.adk.agents.callback_context import CallbackContext
 
+
 # Internal Modules
 from simple_search_agent.tools import check_url_exists
 from simple_search_agent.structured_outputs import MultipleURLResults
@@ -18,6 +19,36 @@ from simple_search_agent.agent_instructions import (
     FORMATTING_AGENT_INSTRUCTION,
     VALIDATOR_AGENT_INSTRUCTION,
     TITLE_EXTRACTOR_INSTRUCTION)
+
+
+## SERPER
+from google.adk.tools.crewai_tool import CrewaiTool
+from crewai_tools import SerperDevTool
+
+# Instantiate the CrewAI tool
+serper_tool_instance = SerperDevTool(
+    n_results=10,
+    save_file=False,
+    search_type="news",
+)
+
+# # Wrap it with CrewaiTool for ADK, providing name and description
+# adk_serper_tool = CrewaiTool(
+#     name="InternetNewsSearch",
+#     description="Searches the internet for the JustWatch URL using Serper.",
+#     tool=serper_tool_instance,
+# )
+
+def internet_search(query: str) -> str:
+    """
+    Searches the internet for a given query and returns the results.
+    Use this to find up-to-date information or specific URLs.
+    The input must be a single string representing the search query.
+    """
+    # Call the underlying tool with the specific keyword argument it expects.
+    return serper_tool_instance.run(search_query=query)
+
+#####
 
 # --- State Keys ---
 STATE_MOVIE_TITLE = "movie_title"
@@ -79,9 +110,9 @@ title_extractor_agent = Agent(
 search_agent_as_tool = Agent(
     model=model_to_use,
     name='justwatch_searcher_worker', # Give it a unique name
-    description='Takes a google search query and returns the first JustWatch URL found.',
+    description='Takes a serper search query and returns the first JustWatch URL found.',
     instruction=SEARCH_WORKER_INSTRUCTION,
-    tools=[google_search],
+    tools=[internet_search],
 )
 
 search_agent = Agent(
