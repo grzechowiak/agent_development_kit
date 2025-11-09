@@ -10,29 +10,14 @@ TITLE_EXTRACTOR_INSTRUCTION = """
 From the user's message, extract the movie title.
 Your output must be ONLY the movie title and nothing else.
 For example, if the user says "find the justwatch page for The Matrix", you must output "The Matrix".
+There might be the cases for multiple movies in one message, in that case extract all titles separated by commas.
 """
 
 
-SEARCH_WORKER_INSTRUCTION = """
-You are a simple web search worker. Your only goal is to execute a search query and find the first URL that looks like a JustWatch movie page.
+SEARCH_AGENT_INSTRUCTION = f"""
+You are a single search agent. Your job is to find ONE valid JustWatch movie URL for the current movie title.
 
-**IMPORTANT: You always must use the `adk_serper_tool` tool to perform the search.
-
-**Your Task:**
-1.  You will be given a search query from the user's message.
-2.  Execute this query using the `adk_serper_tool` tool.
-3.  Scan the search results for the first URL that matches the pattern: `https://www.justwatch.com/us/movie/some-movie-title`.
-4.  **Your output must be ONLY the single URL you found.**
-5.  If you find no matching URL in the search results, you MUST output the single word: `NOT_FOUND`.
-
-**Output Rules (MANDATORY):**
-*   Your entire response must be either a single URL or the word `NOT_FOUND`.
-*   Do not add any explanation, summary, or extra text.
-*   Do not visit or analyze the content of the webpages. Your task is only to look at the URLs from the search results.
-"""
-
-SEARCH_ORCHESTRATOR_INSTRUCTION = f"""
-You are a search orchestrator. Your goal is to find a valid JustWatch URL by managing a search process over multiple attempts.
+You handle exactly one movie title per run (the system may run you multiple times for multiple titles).
 
 **Context:**
 - Movie Title: {{movie_title}}
@@ -40,27 +25,29 @@ You are a search orchestrator. Your goal is to find a valid JustWatch URL by man
 - Previous Validation Result: {{validation_result?}}
 
 **Your Tools:**
-- `justwatch_searcher`: A tool that takes a search query and returns a single URL or "NOT_FOUND".
-- `increment_attempt`: A tool to track the number of tries.
+- `internet_search(query: str)`: runs a web search and returns results text that includes URLs.
+- `increment_attempt()`: increments attempt_count in shared state. Always call this at the start of your turn.
 
-**Your Strict Workflow:**
+**Strict workflow**
+1) Call `increment_attempt()` immediately.
+2) Choose a query based on `attempt_count`:
+   - Attempt 1 → Query: "{{movie_title}} site:justwatch.com/us/movie"
+   - Attempt 2 (if previous validation was invalid) → Query: "{{movie_title}} JustWatch"
+   - Attempt 3 (final) → If you still haven't found a valid URL, you must give up.
+3) Call `internet_search(query)` once with the chosen query.
+4) From the returned text, extract the FIRST URL that matches the pattern:
+   https://www.justwatch.com/us/movie/<slug>
+   (lowercase or mixed case is fine; ignore any non-matching URLs)
+5) **Output rules (MANDATORY):**
+   - If you found a matching URL, OUTPUT ONLY the URL (no other words).
+   - If no matching URL was present in the search output, OUTPUT EXACTLY: INVALID
+   - If `attempt_count` is 3 and you still do not have a matching URL, OUTPUT EXACTLY: {URL_NOT_FOUND_PHRASE}
 
-1.  **Always** call the `increment_attempt` tool at the beginning of your turn.
-
-2.  Based on the `attempt_count`:
-    *   **Attempt 1:** Use the `adk_serper_tool` tool with the query: `"{{movie_title}} site:justwatch.com/us/movie"`. From the search results, find the first URL that matches the pattern `https://www.justwatch.com/us/movie/some-movie-title`.
-    *   **Attempt 2 (if validation failed):** If the previous attempt's URL was invalid, try a more general search query: `"{{movie_title}} JustWatch"`. Again, scan the search result URLs for the pattern `https://www.justwatch.com/us/movie/some-movie-title`.
-    *   **Attempt 3 (if still failing):** If you still haven't found a valid URL, it's time to give up.
-
-**Output Rules (MANDATORY):**
-
-*   If you find a matching URL, your output **must be only the URL** and nothing else.
-    *   **Correct:** `https://www.justwatch.com/us/movie/the-matrix`
-    *   **Incorrect:** `Here is the URL: https://www.justwatch.com/us/movie/the-matrix`
-*   If, after your search, you cannot find a URL that matches the required pattern, output the single word: `INVALID`.
-*   If you are on `attempt_count` 3 and have not found a valid URL, output the exact phrase: `{URL_NOT_FOUND_PHRASE}`.
-
-**Your entire response will be one of these three things: a URL, `INVALID`, or `{URL_NOT_FOUND_PHRASE}`.**
+**Your entire response must be one of:**
+- a single URL
+- INVALID
+- {URL_NOT_FOUND_PHRASE}
+No extra words, punctuation, or markdown.
 """
 
 # ============================================================================
@@ -68,25 +55,43 @@ You are a search orchestrator. Your goal is to find a valid JustWatch URL by man
 # ============================================================================
 
 VALIDATOR_AGENT_INSTRUCTION = f"""
-    You validate the current URL strictly and produce a one-word status.
-    
-    current_url: {{current_url?}}
-    
-    Rules:
-    1) If current_url == "{URL_NOT_FOUND_PHRASE}":
-        - Call exit_loop(status="not_found")
-        - Then OUTPUT EXACTLY: not_found
-    
-    2) Otherwise:
-        - Call check_url_exists(current_url).
-        - If it exists (HTTP 200/OK reachable):
-            * Call exit_loop(status="valid")
-            * Then OUTPUT EXACTLY: valid
-        - If it does not exist:
-            * OUTPUT EXACTLY: invalid
-    
-    Only allowed outputs: valid | invalid | not_found
-    No other words, no punctuation, no markdown.
+You validate the search agent's latest output and decide whether to stop the loop.
+
+**Inputs from state:**
+- current_url: the search agent's raw output (either a URL, "INVALID", or {URL_NOT_FOUND_PHRASE})
+
+**Your tools:**
+- `check_url_exists(url: str)` → returns "valid" if the URL responds 2xx/3xx (HEAD with GET fallback), otherwise "invalid".
+- `exit_loop()` → terminate the loop immediately.
+
+**Policy:**
+
+1) **Sentinel short-circuit.**
+   - If `current_url == {URL_NOT_FOUND_PHRASE}`:
+     - `exit_loop()`
+     - OUTPUT EXACTLY: `not_found`
+     - (Do not call `check_url_exists`.)
+
+2) **Non-URL marker from search.**
+   - If `current_url == "INVALID"`:
+     - OUTPUT EXACTLY: `invalid`
+     - (Do not call `exit_loop` — allow another attempt.)
+
+3) **URL path.**
+   - If `current_url` looks like a URL:
+     - result = `check_url_exists(current_url)`
+     - If result == "valid":
+         - `exit_loop()`
+         - OUTPUT EXACTLY: `valid`
+     - Else (invalid):
+         - OUTPUT EXACTLY: `invalid`
+
+**Output format (mandatory):** one of
+- `valid`
+- `invalid`
+- `not_found`
+
+No extra words or punctuation.
 """
 
 

@@ -1,94 +1,33 @@
 # External Libraries
 from google.adk.agents import Agent, SequentialAgent, LoopAgent
-from google.adk.tools.agent_tool import AgentTool
-from google.adk.tools import google_search
+# from google.adk.tools.agent_tool import AgentTool
+# from google.adk.tools import google_search
 # from google.adk.tools.google_search_tool import GoogleSearchTool
 # from google.adk.tools.tool_context import ToolContext
-from google.adk.tools import ToolContext
-from google.adk.agents.callback_context import CallbackContext
-
 
 # Internal Modules
-from simple_search_agent.tools import check_url_exists
+from simple_search_agent.tools import (
+    check_url_exists,
+    internet_search,
+    exit_loop,
+    increment_attempt,
+    _reset_loop_state
+)
 from simple_search_agent.structured_outputs import MultipleURLResults
 from simple_search_agent.config import (
     model_to_use
 )
 from simple_search_agent.agent_instructions import (
-    SEARCH_WORKER_INSTRUCTION, SEARCH_ORCHESTRATOR_INSTRUCTION,
+    SEARCH_AGENT_INSTRUCTION,
     FORMATTING_AGENT_INSTRUCTION,
     VALIDATOR_AGENT_INSTRUCTION,
-    TITLE_EXTRACTOR_INSTRUCTION)
-
-
-## SERPER
-from google.adk.tools.crewai_tool import CrewaiTool
-from crewai_tools import SerperDevTool
-
-# Instantiate the CrewAI tool
-serper_tool_instance = SerperDevTool(
-    n_results=10,
-    save_file=False,
-    search_type="news",
+    TITLE_EXTRACTOR_INSTRUCTION
 )
-
-# # Wrap it with CrewaiTool for ADK, providing name and description
-# adk_serper_tool = CrewaiTool(
-#     name="InternetNewsSearch",
-#     description="Searches the internet for the JustWatch URL using Serper.",
-#     tool=serper_tool_instance,
-# )
-
-def internet_search(query: str) -> str:
-    """
-    Searches the internet for a given query and returns the results.
-    Use this to find up-to-date information or specific URLs.
-    The input must be a single string representing the search query.
-    """
-    # Call the underlying tool with the specific keyword argument it expects.
-    return serper_tool_instance.run(search_query=query)
-
-#####
 
 # --- State Keys ---
 STATE_MOVIE_TITLE = "movie_title"
 STATE_CURRENT_URL = "current_url"
 STATE_VALIDATION_RESULT = "validation_result"
-STATE_ATTEMPT_COUNT = "attempt_count"
-
-#
-# google_search = GoogleSearchTool(bypass_multi_tools_limit=True)
-# google_search.name = "raw_google_search_tool"
-
-
-
-# --- Tool Definition ---
-def exit_loop(tool_context: ToolContext, *, status: str = "valid"):
-    """
-    Signal the loop to exit AND persist a final status in shared state.
-    status: "valid" | "not_found"
-    """
-    # Persist finalization info for downstream agents
-    cur_url = tool_context.state.get("current_url")
-    if cur_url:
-        tool_context.state["final_url"] = cur_url
-    tool_context.state["validation_result"] = status
-    tool_context.actions.escalate = True
-    return {"status": status}
-
-def increment_attempt(tool_context: ToolContext):
-    raw = tool_context.state.get(STATE_ATTEMPT_COUNT)
-    current_count = raw if isinstance(raw, int) and raw >= 0 else 0
-    new_val = current_count + 1
-    tool_context.state[STATE_ATTEMPT_COUNT] = new_val
-    return {"attempt_count": new_val}
-
-
-def _reset_loop_state(callback_context: CallbackContext):
-    callback_context.state["current_url"] = None
-    callback_context.state["validation_result"] = None
-    callback_context.state["final_url"] = None
-    callback_context.state["attempt_count"] = 0
 
 
 # ============================================================================
@@ -107,20 +46,13 @@ title_extractor_agent = Agent(
 # SUB-AGENT 1A: Search Agent (runs inside LoopAgent)
 # ============================================================================
 
-search_agent_as_tool = Agent(
-    model=model_to_use,
-    name='justwatch_searcher_worker', # Give it a unique name
-    description='Takes a serper search query and returns the first JustWatch URL found.',
-    instruction=SEARCH_WORKER_INSTRUCTION,
-    tools=[internet_search],
-)
-
 search_agent = Agent(
     model=model_to_use,
-    name='justwatch_search_orchestrator', # Give it a unique name
-    description='Manages the process of finding a JustWatch URL over multiple attempts.',
-    instruction=SEARCH_ORCHESTRATOR_INSTRUCTION,
-    tools=[AgentTool(agent=search_agent_as_tool), increment_attempt],
+    name='justwatch_search_agent', # Give it a unique name
+    description='Finds a JustWatch URL over multiple attempts using web search.',
+    instruction=SEARCH_AGENT_INSTRUCTION,
+    # tools=[AgentTool(agent=search_agent_as_tool), increment_attempt],
+    tools=[internet_search, increment_attempt],
     output_key=STATE_CURRENT_URL
 )
 
