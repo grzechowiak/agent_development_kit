@@ -1,53 +1,43 @@
-
-# Helper Tools
-from google.adk.tools import ToolContext
-from google.adk.agents.callback_context import CallbackContext
-# Main Tools
 import requests
+from typing import Literal
+from google.adk.tools import ToolContext
 from crewai_tools import SerperDevTool
-
+from simple_search_agent.config import StateVariables as sv
 
 # ============================================================================
 # HELPER TOOLS
 # ============================================================================
-STATE_ATTEMPT_COUNT = "attempt_count"
 
-# --- Tool Definition ---
-def exit_loop(tool_context: ToolContext, *, status: str = "valid"):
+ValidationStatus = Literal["valid_validation", "invalid_validation", "not_found"]
+def exit_loop(tool_context: ToolContext, *, status: ValidationStatus ):
     """
-    Signal the loop to exit AND persist a final status in shared state.
-    status: "valid" | "not_found"
+    Persist the final validation status and (if valid) the current URL as the final URL,
+    then escalate to terminate the LoopAgent.
+    Allowed values:
+      - "valid_validation"
+      - "invalid_validation"
+      - "not_found"
     """
-    # Persist finalization info for downstream agents
-    cur_url = tool_context.state.get("current_url")
-    if cur_url:
-        tool_context.state["final_url"] = cur_url
-    tool_context.state["validation_result"] = status
+    print(f"[exit_loop] called by {tool_context.agent_name} with status={status}")
+
+    # Save status exactly as used by the validator / formatter
+    tool_context.state[sv.STATE_VALIDATION_RESULT] = status
+
+    # If success, persist the vetted URL as final
+    cur_url = tool_context.state.get(sv.STATE_CURRENT_URL)
+    if isinstance(cur_url, str) and status == "valid_validation":
+        tool_context.state[sv.STATE_FINAL_URL] = cur_url
+
+    # Terminate the loop
     tool_context.actions.escalate = True
+    print("[exit_loop] escalate=True set")
     return {"status": status}
-
-
-def increment_attempt(tool_context: ToolContext):
-    raw = tool_context.state.get(STATE_ATTEMPT_COUNT)
-    current_count = raw if isinstance(raw, int) and raw >= 0 else 0
-    new_val = current_count + 1
-    tool_context.state[STATE_ATTEMPT_COUNT] = new_val
-    return {"attempt_count": new_val}
-
-
-def _reset_loop_state(callback_context: CallbackContext):
-    callback_context.state["current_url"] = None
-    callback_context.state["validation_result"] = None
-    callback_context.state["final_url"] = None
-    callback_context.state["attempt_count"] = 0
-
-
 
 # ============================================================================
 # MAIN TOOLS
 # ============================================================================
 ## URL Checker
-def check_url_exists(url: str):
+def check_url_exists(url: str) -> Literal["valid_url", "invalid_url"]:
     """
     Checks if a given URL is valid. Tries HEAD first, then falls back to GET.
     Treats any 2xx or 3xx HTTP code as valid.
@@ -58,18 +48,18 @@ def check_url_exists(url: str):
     try:
         r = requests.head(url, headers=headers, allow_redirects=True, timeout=5)
         if 200 <= r.status_code < 400:
-            return True
+            return "valid_url"
         r = requests.get(url, headers=headers, allow_redirects=True, timeout=6, stream=True)
         r.close()
-        return 200 <= r.status_code < 400
+        return "valid_url" if 200 <= r.status_code < 400 else "invalid_url"
     except Exception as e:
         print("Error checking URL:", e)
-        return False
+        return "invalid_url"
 
 
 ## Serper Internet Search Tool
 serper_tool_instance = SerperDevTool(
-    n_results=10,
+    n_results=5,
     save_file=False,
     search_type="search",
 )
