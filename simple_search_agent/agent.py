@@ -22,6 +22,8 @@ from simple_search_agent.config import StateVariables as sv
 from simple_search_agent.config import AgentsNames as agnt
 from simple_search_agent.config import ModelsUsed as mdls
 
+from web_scraping_agent.agent import root_agent as scraping_agent
+
 # ============================================================================
 # AGENT 0: Title Extractor (runs first)
 # ============================================================================
@@ -91,7 +93,8 @@ root_agent = SequentialAgent(
     sub_agents=[
         title_extractor_agent,
         refinement_loop,
-        formatting_agent
+        formatting_agent,
+        scraping_agent
     ],
     description="Find and validated the URLs, and later format them"
 )
