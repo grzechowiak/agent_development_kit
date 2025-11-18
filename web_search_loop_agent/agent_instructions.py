@@ -1,4 +1,4 @@
-from simple_search_agent.config import StateVariables as sv
+from config_shared import StateVariables as sv
 
 URL_NOT_FOUND_PHRASE = "URL_NOT_FOUND_AFTER_ALL_ATTEMPTS"
 # https://google.github.io/adk-docs/sessions/state/#bypassing-state-injection-with-instructionprovider
@@ -86,7 +86,6 @@ You validate the search agent's latest output and decide whether to stop the loo
 NO extra words, NO punctuation, NO markdown.
 """
 
-
 # ============================================================================
 # FORMATTING AGENT INSTRUCTION
 # ============================================================================
@@ -95,10 +94,10 @@ FORMATTING_AGENT_INSTRUCTION = f"""You are a final formatter for JustWatch URLs.
 
     **Final URL:** {{{sv.STATE_FINAL_URL}?}} OR {URL_NOT_FOUND_PHRASE}
     **Validation Result:** {{{sv.STATE_VALIDATION_RESULT}}}
-    
+
     **Your Task:**
     Extract the movie title from the conversation history and format according to the output schema.
-    
+
     Determine the field values:
     - title_from_user: title is {{{sv.STATE_MOVIE_TITLE}}}
     - url: If {{{sv.STATE_FINAL_URL}?}} else {URL_NOT_FOUND_PHRASE}
@@ -106,7 +105,7 @@ FORMATTING_AGENT_INSTRUCTION = f"""You are a final formatter for JustWatch URLs.
         if "valid_validation" -> "Yes"
         if "invalid_validation" -> "No"
         if {URL_NOT_FOUND_PHRASE} -> "Not Found"
-    
+
     Return the properly formatted result according to the schema. Make the JSON looks pretty (format it to the user).
 
     Keep it simple and direct!

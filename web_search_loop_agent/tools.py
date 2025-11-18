@@ -2,7 +2,7 @@ import requests
 from typing import Literal
 from google.adk.tools import ToolContext
 from crewai_tools import SerperDevTool
-from simple_search_agent.config import StateVariables as sv
+from config_shared import StateVariables as sv
 
 # ============================================================================
 # HELPER TOOLS

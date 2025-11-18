@@ -1,6 +1,6 @@
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools import ToolContext
-from simple_search_agent.config import StateVariables as sv
+from config_shared import StateVariables as sv
 
 # ============================================================================
 # Callbacks

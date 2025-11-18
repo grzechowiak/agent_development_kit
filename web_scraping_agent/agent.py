@@ -1,32 +1,35 @@
-import os
+# External Libraries
 from google.adk import Agent
-from firecrawl import FirecrawlApp
-
-from simple_search_agent.config import ModelsUsed as mdls
-
-
-# Initialize Firecrawl
-firecrawl = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
-
-
-# Scraping function
-def scrape_website(url: str):
-    """Scrapes a website and returns the content in markdown format"""
-    # For Firecrawl v2, use scrape with formats parameter
-    result = firecrawl.scrape(url, formats=['markdown'])
-
-    # Extract markdown from the result
-    if hasattr(result, 'markdown'):
-        return result.markdown
-    return str(result)
+# Internal Modules
+from web_scraping_agent.config import ModelsUsed as mdls
+from web_scraping_agent.config import AgentsNames as agnt
+from web_scraping_agent.structured_outputs import MultipleVODResult
+from web_scraping_agent.tools import scrape_website
+from web_scraping_agent.agent_instructions import WEB_SCARPING_AGENT_INSTRUCTION, VOD_FORMATTING_AGENT_INSTRUCTION
 
 
-
-root_agent  = Agent(
+# ============================================================================
+# AGENT 1: Web Scraper Agent
+# ============================================================================
+vod_formatting_agent = Agent(
     model=mdls.MAIN_MODEL,
-    name="web_scraping_agent_name",
-    description='Extracts stream options from the user URL',
-    instruction="You are a helpful assistant that can scrape websites when given a URL. Only information about the available VOD options (STREAM) are required to scrape, nothing else. Do not provide information about BUY, or RENT, only STRAM",
+    name=agnt.vod_agent_formatter,
+    description='Your main task is to format the VOD result according to the given output schema.',
+    instruction=VOD_FORMATTING_AGENT_INSTRUCTION,
+    output_schema = MultipleVODResult ## When using output_schema -> cannot use tools at the same time
+)
+
+# ============================================================================
+# ROOT AGENT: Web Scraper Agent
+# ============================================================================
+root_agent  = Agent(
+    model = mdls.MAIN_MODEL,
+    name = agnt.scraping_agent,
+    description = 'Extracts stream options from the provided URL',
+    instruction = WEB_SCARPING_AGENT_INSTRUCTION,
+    sub_agents = [vod_formatting_agent],
     tools=[scrape_website]
 )
+
+
 

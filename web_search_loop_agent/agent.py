@@ -1,28 +1,16 @@
 # External Libraries
-from google.adk.agents import Agent, SequentialAgent, LoopAgent
-
+from google.adk.agents import Agent, LoopAgent, SequentialAgent
+# From other Agents
+from config_shared import StateVariables as sv ## Load state variables from the main workflow
 # Internal Modules
-from simple_search_agent.tools import (
-    check_url_exists,
-    internet_search,
-    exit_loop
-)
-from simple_search_agent.callbacks import (
-    _reset_loop_state,
-    increment_attempt
-)
-from simple_search_agent.structured_outputs import URLResult
-from simple_search_agent.agent_instructions import (
-    SEARCH_AGENT_INSTRUCTION,
-    FORMATTING_AGENT_INSTRUCTION,
-    VALIDATOR_AGENT_INSTRUCTION,
-    TITLE_EXTRACTOR_INSTRUCTION
-)
-from simple_search_agent.config import StateVariables as sv
-from simple_search_agent.config import AgentsNames as agnt
-from simple_search_agent.config import ModelsUsed as mdls
+from web_search_loop_agent.agent_instructions import (
+    SEARCH_AGENT_INSTRUCTION, VALIDATOR_AGENT_INSTRUCTION, TITLE_EXTRACTOR_INSTRUCTION, FORMATTING_AGENT_INSTRUCTION)
+from web_search_loop_agent.tools import internet_search, check_url_exists, exit_loop
+from web_search_loop_agent.callbacks import increment_attempt, _reset_loop_state
+from web_search_loop_agent.structured_outputs import URLResult
+from web_search_loop_agent.config import AgentsNames as agnt
+from web_search_loop_agent.config import ModelsUsed as mdls
 
-from web_scraping_agent.agent import root_agent as scraping_agent
 
 # ============================================================================
 # AGENT 0: Title Extractor (runs first)
@@ -85,16 +73,16 @@ formatting_agent = Agent(
     output_schema = URLResult ## When using output_schema -> cannot use tools at the same time
 )
 
+
 # ============================================================================
 # ROOT AGENT: Sequential pipeline
 # ============================================================================
 root_agent = SequentialAgent(
-    name=agnt.the_main_root_agent,
+    name="IterativeURLFinderPipeline",
     sub_agents=[
         title_extractor_agent,
         refinement_loop,
         formatting_agent,
-        scraping_agent
     ],
     description="Find and validated the URLs, and later format them"
 )
