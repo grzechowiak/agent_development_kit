@@ -1,6 +1,6 @@
 # External Libraries
 from google.adk.agents import Agent, LoopAgent, SequentialAgent
-# From other Agents
+# Shared Module
 from config_shared import StateVariables as sv ## Load state variables from the main workflow
 # Internal Modules
 from web_search_loop_agent.agent_instructions import (
