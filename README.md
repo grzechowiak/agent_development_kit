@@ -1,13 +1,11 @@
 # StreamAgent
 
-## Desc.
+## 📋 Desc.
 A Python-based multi-agent system designed to find relevant streaming sources for a given movie and determine where it's currently available. This project leverages Google's Agent Development Kit (ADK) to power its search.
 
----
-
-## Architecture
+## ⚙️Architecture
 *While still in progress, the current architecture looks like follow:*
-
+```
 01.root_agent (MainGreetingAgent with 1 sub-agent)
 |    ├── title_extractor_agent (Tool Agent)
 │        └── [saves to STATE_MOVIE_TITLE]
@@ -39,6 +37,7 @@ A Python-based multi-agent system designed to find relevant streaming sources fo
         └── 03.2.1. Sub-Agent: vod_formatting_agent
             ├── Input: provider_names list
             └── Output Schema: MultipleVODResult
+```
 
 ---
 
