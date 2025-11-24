@@ -39,6 +39,8 @@ A Python-based multi-agent system designed to find relevant streaming sources fo
             └── Output Schema: MultipleVODResult
 ```
 
+https://github.com/user-attachments/assets/77411951-1741-4d57-be48-f5304954c2d8
+
 ---
 
 ## 🚀 Getting Started
