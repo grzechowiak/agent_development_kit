@@ -12,16 +12,16 @@ from web_search_loop_agent.config import AgentsNames as agnt
 from web_search_loop_agent.config import ModelsUsed as mdls
 
 
-# ============================================================================
-# AGENT 0: Title Extractor (runs first)
-# ============================================================================
-title_extractor_agent = Agent(
-    model=mdls.MAIN_MODEL,
-    name=agnt.agent_title_extractor,
-    description='Extracts the movie title from the user query',
-    instruction=TITLE_EXTRACTOR_INSTRUCTION,
-    output_key=sv.STATE_MOVIE_TITLE
-)
+# # ============================================================================
+# # AGENT 0: Title Extractor (runs first)
+# # ============================================================================
+# title_extractor_agent = Agent(
+#     model=mdls.MAIN_MODEL,
+#     name=agnt.agent_title_extractor,
+#     description='Extracts the movie title from the user query',
+#     instruction=TITLE_EXTRACTOR_INSTRUCTION,
+#     output_key=sv.STATE_MOVIE_TITLE
+# )
 
 # ============================================================================
 # SUB-AGENT 1A: Search Agent (runs inside LoopAgent)
@@ -70,7 +70,8 @@ formatting_agent = Agent(
     name=agnt.agent_formatter,
     description='Accepts URL links which were found and validated, and formats them into the final output schema',
     instruction=FORMATTING_AGENT_INSTRUCTION,
-    output_schema = URLResult ## When using output_schema -> cannot use tools at the same time
+    output_schema = URLResult, ## When using output_schema -> cannot use tools at the same time
+    output_key=sv.STATE_FINAL_URL
 )
 
 
@@ -80,7 +81,7 @@ formatting_agent = Agent(
 root_agent = SequentialAgent(
     name="IterativeURLFinderPipeline",
     sub_agents=[
-        title_extractor_agent,
+        # title_extractor_agent,
         refinement_loop,
         formatting_agent,
     ],

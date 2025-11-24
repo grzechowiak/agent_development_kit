@@ -7,6 +7,10 @@ class ModelsUsed:
     MAIN_MODEL = "gemini-2.0-flash"
     # MAIN_MODEL = "gemini-2.0-flash-lite"
 
+# --- State Keys ---
+class StateVariables:
+    pass
+
 class AgentsNames:
     agent_title_extractor = "TitleExtractor"
     agent_search = "justwatch_search_agent"

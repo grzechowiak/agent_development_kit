@@ -3,9 +3,9 @@ from config_shared import StateVariables as sv
 URL_NOT_FOUND_PHRASE = "URL_NOT_FOUND_AFTER_ALL_ATTEMPTS"
 # https://google.github.io/adk-docs/sessions/state/#bypassing-state-injection-with-instructionprovider
 
-# ============================================================================
-# EXTRACTOR AGENT INSTRUCTION
-# ============================================================================
+# # ============================================================================
+# # EXTRACTOR AGENT INSTRUCTION
+# # ============================================================================
 
 TITLE_EXTRACTOR_INSTRUCTION = """
 From the user's message, extract the movie title.
