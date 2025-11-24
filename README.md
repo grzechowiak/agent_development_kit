@@ -10,31 +10,31 @@ A Python-based multi-agent system designed to find relevant streaming sources fo
 |    ├── title_extractor_agent (Tool Agent)
 │        └── [saves to STATE_MOVIE_TITLE]
 │
-└── 02. movie_processing_pipeline (SequentialAgent with 2 sub-agents)
+└ 01.1. movie_processing_pipeline (SequentialAgent with 2 sub-agents)
     │
-    ├── 03.1. iterative_url_finder_pipeline (SequentialAgent with 2 sub-agents)
+    ├── 02. iterative_url_finder_pipeline (SequentialAgent with 2 sub-agents)
     │   │
-    │   ├── 04.1.refinement_loop (LoopAgent - with 2 sub-agents)
+    │   ├── 02.1.refinement_loop (LoopAgent - with 2 sub-agents)
     │   │   │
-    │   │   ├── 04.1.1. search_agent
+    │   │   ├── 02.1.1. search_agent
     │   │   │   ├── Tool: internet_search
     │   │   │   ├── Tool: increment_attempt
     │   │   │   └── [saves to STATE_CURRENT_URL]
     │   │   │
-    │   │   └── 04.1.2. validator_agent
+    │   │   └── 02.1.2. validator_agent
     │   │       ├── Tool: check_url_exists
     │   │       ├── Tool: exit_loop
     │   │       └── [saves to STATE_FINAL_URL, STATE_VALIDATION_RESULT]
     │   │
-    │   └── 04.2. formatting_agent
+    │   └── 02.2. formatting_agent
     │       ├── Reads: STATE_MOVIE_TITLE, STATE_FINAL_URL, STATE_VALIDATION_RESULT
     │       └── Output Schema: URLResult
     │
-    └── 03.2.Web_Scraping_Agent (with 1 sub-agent)
+    └── 03. Web_Scraping_Agent (with 1 sub-agent)
         │   ├── Tool: web_scraping_tool (Playwright + BeautifulSoup)
         │   └── [returns provider_names]
         │
-        └── 03.2.1. Sub-Agent: vod_formatting_agent
+        └── 03.1. Sub-Agent: vod_formatting_agent
             ├── Input: provider_names list
             └── Output Schema: MultipleVODResult
 ```
